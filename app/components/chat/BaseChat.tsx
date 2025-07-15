@@ -457,35 +457,39 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     <rect className={classNames(styles.PromptEffectLine)} pathLength="100" strokeLinecap="round"></rect>
                     <rect className={classNames(styles.PromptShine)} x="48" y="24" width="70" height="1"></rect>
                   </svg>
-                  {/* ModelSelector and APIKeyManager block remains unchanged */}
-                  <ClientOnly>
-                    {() => (
-                      <div>
-                        <ModelSelector
-                          key={provider?.name + ':' + modelList.length}
-                          model={model}
-                          setModel={setModel}
-                          modelList={modelList}
-                          provider={provider}
-                          setProvider={setProvider}
-                          providerList={providerList || (PROVIDER_LIST as ProviderInfo[])}
-                          apiKeys={apiKeys}
-                          modelLoading={isModelLoading}
-                        />
-                        {(providerList || []).length > 0 &&
-                          provider &&
-                          (!LOCAL_PROVIDERS.includes(provider.name) || 'OpenAILike') && (
-                            <APIKeyManager
-                              provider={provider}
-                              apiKey={apiKeys[provider.name] || ''}
-                              setApiKey={(key) => {
-                                onApiKeysChange(provider.name, key);
-                              }}
-                            />
-                          )}
-                      </div>
-                    )}
-                  </ClientOnly>
+                  <div>
+                    <ClientOnly>
+                      {() => (
+                        <div>
+                          {/* ModelSelector and APIKeyManager hidden as per request */}
+                          
+                          <ModelSelector
+                            key={provider?.name + ':' + modelList.length}
+                            model={model}
+                            setModel={setModel}
+                            modelList={modelList}
+                            provider={provider}
+                            setProvider={setProvider}
+                            providerList={providerList || (PROVIDER_LIST as ProviderInfo[])}
+                            apiKeys={apiKeys}
+                            modelLoading={isModelLoading}
+                          />
+                          {(providerList || []).length > 0 &&
+                            provider &&
+                            (!LOCAL_PROVIDERS.includes(provider.name) || 'OpenAILike') && (
+                              <APIKeyManager
+                                provider={provider}
+                                apiKey={apiKeys[provider.name] || ''}
+                                setApiKey={(key) => {
+                                  onApiKeysChange(provider.name, key);
+                                }}
+                              />
+                            )}
+                         
+                        </div>
+                      )}
+                    </ClientOnly>
+                  </div>
                   <FilePreview
                     files={uploadedFiles}
                     imageDataList={imageDataList}
@@ -590,6 +594,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         <SendButton
                           show={input.length > 0 || isStreaming || uploadedFiles.length > 0}
                           isStreaming={isStreaming}
+                          disabled={!providerList || providerList.length === 0}
                           onClick={(event) => {
                             if (isStreaming) {
                               handleStop?.();
@@ -662,14 +667,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </div>
               </div>
             </StickToBottom>
-            <div className="flex flex-col justify-center">
+            <div className="flex flex-col justify-center relative z-10">
               {!chatStarted && (
-                <div className="flex justify-center gap-2">
-                  {ImportButtons(importChat)}
-                  <GitCloneButton importChat={importChat} />
+                <div className="flex justify-center gap-4 mb-8">
+                  <div className="flex gap-3">
+                    {ImportButtons(importChat)}
+                    <GitCloneButton importChat={importChat} />
+                  </div>
                 </div>
               )}
-              <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-8">
                 {!chatStarted &&
                   ExamplePrompts((event, messageInput) => {
                     if (isStreaming) {
