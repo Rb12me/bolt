@@ -158,58 +158,88 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [isStreaming, onStreamingChange]);
 
     useEffect(() => {
-      if (typeof window !== 'undefined' && ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        const recognition = new SpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-
-        recognition.onresult = (event) => {
-          const transcript = Array.from(event.results)
-            .map((result) => result[0])
-            .map((result) => result.transcript)
-            .join('');
-
-          setTranscript(transcript);
-
-          if (handleInputChange) {
-            const syntheticEvent = {
-              target: { value: transcript },
-            } as React.ChangeEvent<HTMLTextAreaElement>;
-            handleInputChange(syntheticEvent);
+      if (typeof window !== 'undefined') {
+        try {
+          const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+          
+          if (SpeechRecognition) {
+            const recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+    
+            recognition.onresult = (event: any) => {
+              const transcript = Array.from(event.results)
+                .map((result: any) => result[0])
+                .map((result: any) => result.transcript)
+                .join('');
+    
+              setTranscript(transcript);
+    
+              if (handleInputChange) {
+                const syntheticEvent = {
+                  target: { value: transcript },
+                } as React.ChangeEvent<HTMLTextAreaElement>;
+                handleInputChange(syntheticEvent);
+              }
+            };
+    
+            recognition.onerror = (event: any) => {
+              console.error('Speech recognition error:', event.error);
+              setIsListening(false);
+            };
+    
+            setRecognition(recognition);
           }
-        };
-
-        recognition.onerror = (event) => {
-          console.error('Speech recognition error:', event.error);
-          setIsListening(false);
-        };
-
-        setRecognition(recognition);
+        } catch (error) {
+          console.error('Speech recognition not available:', error);
+        }
       }
     }, []);
 
     useEffect(() => {
       if (typeof window !== 'undefined') {
         let parsedApiKeys: Record<string, string> | undefined = {};
-
+    
         try {
           parsedApiKeys = getApiKeysFromCookies();
           setApiKeys(parsedApiKeys);
         } catch (error) {
           console.error('Error loading API keys from cookies:', error);
-          Cookies.remove('apiKeys');
+          try {
+            Cookies.remove('apiKeys');
+          } catch (cookieError) {
+            console.error('Error removing cookies:', cookieError);
+          }
         }
-
+    
         setIsModelLoading('all');
-        fetch('/api/models')
-          .then((response) => response.json())
+        
+        // Add timeout and better error handling for API call
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
+        fetch('/api/models', { 
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+          .then((response) => {
+            clearTimeout(timeoutId);
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+          })
           .then((data) => {
             const typedData = data as { modelList: ModelInfo[] };
-            setModelList(typedData.modelList);
+            setModelList(typedData.modelList || []);
           })
           .catch((error) => {
+            clearTimeout(timeoutId);
             console.error('Error fetching model list:', error);
+            // Set empty array as fallback
+            setModelList([]);
           })
           .finally(() => {
             setIsModelLoading(undefined);
@@ -220,20 +250,40 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const onApiKeysChange = async (providerName: string, apiKey: string) => {
       const newApiKeys = { ...apiKeys, [providerName]: apiKey };
       setApiKeys(newApiKeys);
-      Cookies.set('apiKeys', JSON.stringify(newApiKeys));
-
-      setIsModelLoading(providerName);
-
-      let providerModels: ModelInfo[] = [];
-
+      
       try {
-        const response = await fetch(`/api/models/${encodeURIComponent(providerName)}`);
+        Cookies.set('apiKeys', JSON.stringify(newApiKeys));
+      } catch (error) {
+        console.error('Error setting cookies:', error);
+      }
+    
+      setIsModelLoading(providerName);
+    
+      let providerModels: ModelInfo[] = [];
+    
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
+    
+        const response = await fetch(`/api/models/${encodeURIComponent(providerName)}`, {
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
-        providerModels = (data as { modelList: ModelInfo[] }).modelList;
+        providerModels = (data as { modelList: ModelInfo[] }).modelList || [];
       } catch (error) {
         console.error('Error loading dynamic models for:', providerName, error);
       }
-
+    
       // Only update models for the specific provider
       setModelList((prevModels) => {
         const otherModels = prevModels.filter((model) => model.provider !== providerName);
