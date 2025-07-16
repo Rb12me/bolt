@@ -331,32 +331,49 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     };
 
     const baseChat = (
-      <div
-        ref={ref}
-        className={classNames(styles.BaseChat, 'relative flex h-full w-full overflow-hidden')}
-        data-chat-visible={showChat}
-      >
+<div
+  ref={ref}
+  className={classNames(
+    styles.BaseChat,
+    'relative flex h-full w-full overflow-hidden bg-gradient-to-br from-gray-900 via-gray-800 to-black',
+    'before:absolute before:inset-0 before:bg-[radial-gradient(circle_at_20%_50%,rgba(120,119,198,0.3),transparent_50%)] before:pointer-events-none',
+    'after:absolute after:inset-0 after:bg-[radial-gradient(circle_at_80%_20%,rgba(255,184,0,0.15),transparent_50%)] after:pointer-events-none',
+  )}
+  data-chat-visible={showChat}
+>
         <ClientOnly>{() => <Menu />}</ClientOnly>
-        <div className="flex flex-col lg:flex-row overflow-y-auto w-full h-full">
-          <div className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full')}>
-            {!chatStarted && (
-              <div id="intro" className="mt-[16vh] max-w-2xl mx-auto text-center px-4 lg:px-0">
-                <h1 className="text-3xl lg:text-6xl font-bold text-bolt-elements-textPrimary mb-4 animate-fade-in">
-                  Where ideas begin
-                </h1>
-                <p className="text-md lg:text-xl mb-8 text-bolt-elements-textSecondary animate-fade-in animation-delay-200">
-                  Bring ideas to life in seconds or get help on existing projects.
-                </p>
-              </div>
-            )}
+        <div className="flex flex-col lg:flex-row overflow-y-auto w-full h-full backdrop-blur-sm relative z-10">
+        <div
+  className={classNames(
+    styles.Chat,
+    'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full relative',
+  )}
+>
+{!chatStarted && (
+  <div id="intro" className="mt-[12vh] max-w-4xl mx-auto text-center px-6 lg:px-0 relative z-10">
+    <div className="absolute inset-0 bg-gradient-to-r from-amber-500/30 to-orange-500/30 rounded-3xl blur-3xl -z-10 animate-pulse"></div>
+    <div className="absolute -top-20 left-1/2 transform -translate-x-1/2 w-96 h-96 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-full blur-3xl animate-pulse animation-delay-1000"></div>
+    <h1 className="text-4xl lg:text-7xl font-black bg-gradient-to-r from-amber-400 via-yellow-500 to-orange-500 bg-clip-text text-transparent mb-6 animate-fade-in tracking-tight height-84px">
+      Vibe Coding
+    </h1>
+    <p className="text-lg lg:text-2xl mb-8 text-slate-300/90 animate-fade-in animation-delay-200">
+      Create stunning websites with the power of AI
+    </p>
+    <div className="flex justify-center space-x-2 mb-8">
+      <div className="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
+      <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse animation-delay-200"></div>
+      <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse animation-delay-400"></div>
+    </div>
+  </div>
+)}
             <StickToBottom
-              className={classNames('pt-6 px-2 sm:px-6 relative', {
+              className={classNames('pt-8 px-4 sm:px-8 relative', {
                 'h-full flex flex-col modern-scrollbar': chatStarted,
               })}
               resize="smooth"
               initial="smooth"
             >
-              <StickToBottom.Content className="flex flex-col gap-4 relative ">
+              <StickToBottom.Content className="flex flex-col gap-6">
                 <ClientOnly>
                   {() => {
                     return chatStarted ? (
